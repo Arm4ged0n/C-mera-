@@ -1,0 +1,985 @@
+```html
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RETAILEYE - Visão Computacional de Alta Performance</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        darkBg: '#090d16',
+                        cardBg: '#121824',
+                        cardBorder: '#1c2538',
+                        brandBlue: '#0ea5e9',
+                        brandGreen: '#10b981',
+                        brandRed: '#f43f5e'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #090d16;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .thermal-blend {
+            mix-blend-mode: screen;
+            pointer-events: none;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        @media print {
+            body { background: white; color: black; }
+            .no-print { display: none !important; }
+            .print-container { width: 100%; max-width: 100%; margin: 0; padding: 10px; }
+            .card-print { border: 1px solid #ccc; background: white; color: black; }
+        }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col justify-between overflow-x-hidden select-none">
+
+    <!-- HEADER SUPERIOR (Fiel ao design premium RETAILEYE) -->
+    <header class="bg-[#0b111e]/95 border-b border-slate-800/60 sticky top-0 z-50 px-4 py-3 no-print">
+        <div class="max-w-lg mx-auto w-full flex justify-between items-center">
+            <div class="flex items-center gap-2.5">
+                <div class="h-9 w-9 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20">
+                    <i data-lucide="eye" class="w-5 h-5 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-sm font-extrabold tracking-wider text-white uppercase flex items-center gap-1.5">
+                        RETAILEYE
+                    </h1>
+                    <p class="text-[10px] text-slate-400 font-medium tracking-tight">Análise Comportamental · Varejo</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <span id="live-timer" class="font-mono text-xs text-slate-400 bg-slate-900/80 px-2.5 py-1 rounded border border-slate-800">00:00:10</span>
+                <div class="flex items-center gap-1.5 bg-sky-500/10 border border-sky-500/25 px-2.5 py-1 rounded-full">
+                    <span class="h-1.5 w-1.5 rounded-full bg-sky-400 animate-pulse"></span>
+                    <span class="text-[9px] font-black tracking-widest text-sky-400 uppercase">AO VIVO</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- METADATA PANEL (Diagnóstico técnico real) -->
+    <section class="bg-[#0c1221] border-b border-slate-800/40 px-4 py-2 no-print">
+        <div class="max-w-lg mx-auto flex justify-between items-center text-[10px] font-semibold text-slate-400">
+            <div class="flex gap-4">
+                <span>FPS <strong class="text-sky-400 font-mono" id="real-fps">60</strong></span>
+                <span>RES <strong class="text-slate-200 font-mono" id="real-res">480x640</strong></span>
+                <span>DETECT <strong class="text-sky-400 font-mono" id="real-detect">0</strong></span>
+                <span>ZONES <strong class="text-slate-200 font-mono">4/4</strong></span>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="toggleHeatmap()" id="btn-heat" class="bg-slate-900 border border-slate-800 px-3 py-1 rounded flex items-center gap-1 transition">
+                    <span class="text-amber-500 text-xs">🔥</span> Heat
+                </button>
+                <button onclick="toggleAudio()" id="btn-audio" class="bg-slate-900 border border-slate-800 px-3 py-1 rounded text-slate-400 hover:text-white transition">
+                    <i id="audio-icon" data-lucide="volume-2" class="w-3.5 h-3.5"></i>
+                </button>
+                <button onclick="toggleTracking()" id="btn-state" class="bg-[#f43f5e]/10 text-brandRed border border-[#f43f5e]/20 px-3 py-1 rounded flex items-center gap-1 transition">
+                    <span class="h-1.5 w-1.5 rounded bg-brandRed"></span> Parar
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- VIDEO CAPTURA DE HARDWARE (NATIVO) -->
+    <video id="webcamVideo" autoplay playsinline muted class="hidden"></video>
+
+    <!-- CONTAINER OPERACIONAL -->
+    <main class="flex-grow w-full max-w-lg mx-auto px-4 py-4 space-y-4 overflow-y-auto no-scrollbar pb-24 print-container">
+
+        <!-- ================= MÓDULO 1: AO VIVO ================= -->
+        <div id="section-live" class="space-y-4">
+            
+            <!-- CONTÊINER DA CÂMERA -->
+            <div class="relative bg-black rounded-2xl overflow-hidden border border-slate-800 shadow-2xl aspect-[3/4] no-print">
+                <!-- Canvas de Processamento de IA -->
+                <canvas id="cctvCanvas" class="absolute inset-0 w-full h-full object-cover"></canvas>
+                
+                <!-- Canvas de Acumulação Térmica -->
+                <canvas id="heatmapCanvas" class="absolute inset-0 w-full h-full object-cover thermal-blend opacity-0 transition-opacity duration-300"></canvas>
+
+                <!-- Retícula de Câmera -->
+                <div class="absolute inset-4 pointer-events-none border border-transparent">
+                    <div class="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-sky-400"></div>
+                    <div class="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-sky-400"></div>
+                    <div class="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-sky-400"></div>
+                    <div class="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-sky-400"></div>
+                </div>
+
+                <!-- LINHAS DOS 4 QUADRANTES -->
+                <div class="absolute inset-0 grid grid-cols-2 grid-rows-2 pointer-events-none">
+                    <div class="border-r border-b border-slate-500/20 flex items-start p-2">
+                        <span class="text-[9px] font-black text-sky-400 bg-[#090d16]/85 px-2 py-0.5 rounded border border-sky-500/10">A - Entrada</span>
+                    </div>
+                    <div class="border-b border-slate-500/20 flex items-start justify-end p-2">
+                        <span class="text-[9px] font-black text-violet-400 bg-[#090d16]/85 px-2 py-0.5 rounded border border-violet-500/10">B - Produtos</span>
+                    </div>
+                    <div class="border-r border-slate-500/20 flex items-end p-2">
+                        <span class="text-[9px] font-black text-emerald-400 bg-[#090d16]/85 px-2 py-0.5 rounded border border-emerald-500/10">C - Caixa</span>
+                    </div>
+                    <div class="flex items-end justify-end p-2">
+                        <span class="text-[9px] font-black text-amber-400 bg-[#090d16]/85 px-2 py-0.5 rounded border border-amber-500/10">D - Vitrine</span>
+                    </div>
+                </div>
+
+                <!-- BOTÕES FLUTUANTES DA CÂMERA -->
+                <div class="absolute bottom-3 left-3 flex gap-2">
+                    <button onclick="requestRearCamera()" class="bg-black/85 hover:bg-black text-white text-[10px] font-bold py-2 px-3 rounded-xl border border-slate-800 backdrop-blur flex items-center gap-1.5 transition">
+                        <i data-lucide="camera" class="w-3.5 h-3.5 text-sky-400"></i> Ativar Traseira
+                    </button>
+                    <button onclick="triggerSimulateShopper()" class="bg-black/85 hover:bg-black text-white text-[10px] font-bold py-2 px-3 rounded-xl border border-slate-800 backdrop-blur flex items-center gap-1.5 transition">
+                        <i data-lucide="user-plus" class="w-3.5 h-3.5 text-brandGreen"></i> Simular IA
+                    </button>
+                </div>
+            </div>
+
+            <!-- PAINEL DE MÉTRICAS -->
+            <div class="bg-cardBg border border-cardBorder p-4 rounded-2xl shadow-xl space-y-4 card-print">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <div class="flex items-baseline gap-2">
+                            <span id="active-shoppers-main" class="text-5xl font-black tracking-tight text-white">0</span>
+                            <span class="text-xs font-semibold text-slate-400">pessoas<br>na loja</span>
+                        </div>
+                    </div>
+                    <span id="density-badge" class="px-3 py-1 bg-slate-800 text-slate-400 border border-slate-700 rounded-full text-xs font-bold uppercase tracking-widest">Vazio</span>
+                </div>
+
+                <div class="grid grid-cols-3 gap-3 text-center">
+                    <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800 card-print">
+                        <span class="text-[10px] text-slate-400 font-semibold uppercase block">Hoje</span>
+                        <strong id="kpi-today-count" class="text-lg font-bold text-white">0</strong>
+                    </div>
+                    <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800 card-print">
+                        <span class="text-[10px] text-slate-400 font-semibold uppercase block">Tempo Méd.</span>
+                        <strong id="kpi-average-time" class="text-lg font-bold text-white">0s</strong>
+                    </div>
+                    <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800 card-print">
+                        <span class="text-[10px] text-slate-400 font-semibold uppercase block">Pico</span>
+                        <strong id="kpi-peak-count" class="text-lg font-bold text-white">0</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= MÓDULO 2: CRM & RELATÓRIOS ================= -->
+        <div id="section-zones" class="hidden space-y-4">
+            <div class="flex justify-between items-center no-print">
+                <h3 class="text-xs font-bold tracking-wider text-slate-400 uppercase">Gestão de Leads & CRM</h3>
+                <div class="flex gap-2">
+                    <button onclick="shareWhatsApp()" class="bg-green-600 hover:bg-green-700 text-white text-[10px] font-bold px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition">
+                        <i data-lucide="share-2" class="w-3.5 h-3.5"></i> WhatsApp
+                    </button>
+                    <button onclick="exportToPDF()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition">
+                        <i data-lucide="file-text" class="w-3.5 h-3.5"></i> Salvar PDF
+                    </button>
+                </div>
+            </div>
+
+            <!-- Lista de Cartões de Clientes no CRM -->
+            <div id="crm-leads-list" class="space-y-3">
+                <div class="text-center py-8 text-xs text-slate-500">Nenhum cliente detectado na sessão até ao momento. Ligue a câmera para registrar dados.</div>
+            </div>
+        </div>
+
+        <!-- ================= MÓDULO 3: ATENÇÃO ================= -->
+        <div id="section-attention" class="hidden space-y-4">
+            <h3 class="text-xs font-bold tracking-wider text-slate-400 uppercase">Atenção Ocular Acumulada</h3>
+            
+            <div class="bg-cardBg border border-cardBorder p-4 rounded-2xl space-y-4 card-print">
+                <p class="text-xs text-slate-300">Tempo total de foco visual que os clientes dedicaram a cada elemento comercial exposto na loja:</p>
+                
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-400 mb-1">
+                            <span>Look Vitrina Principal</span>
+                            <strong class="text-white" id="stat-gaze-1">0s</strong>
+                        </div>
+                        <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                            <div id="bar-gaze-1" class="bg-sky-500 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-400 mb-1">
+                            <span>Banca de Produtos Promocionais</span>
+                            <strong class="text-white" id="stat-gaze-2">0s</strong>
+                        </div>
+                        <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                            <div id="bar-gaze-2" class="bg-sky-500 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-400 mb-1">
+                            <span>Banner Informativo Checkout</span>
+                            <strong class="text-white" id="stat-gaze-3">0s</strong>
+                        </div>
+                        <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                            <div id="bar-gaze-3" class="bg-sky-500 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= MÓDULO 4: VISITANTES ATIVOS ================= -->
+        <div id="section-visitors" class="hidden space-y-4">
+            <h3 class="text-xs font-bold tracking-wider text-slate-400 uppercase">Percurso de Fluxo Ativo</h3>
+            
+            <div class="bg-cardBg border border-cardBorder rounded-2xl overflow-hidden shadow-2xl card-print">
+                <div class="overflow-x-auto no-scrollbar">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-slate-900/80 text-slate-400 font-bold uppercase border-b border-slate-800 text-[9px] card-print">
+                                <th class="p-3">ID</th>
+                                <th class="p-3">Quadrante</th>
+                                <th class="p-3">Dwell Time</th>
+                                <th class="p-3">Foco Ocular</th>
+                                <th class="p-3">Expressão</th>
+                            </tr>
+                        </thead>
+                        <tbody id="shopper-tbody" class="divide-y divide-slate-800/60 text-slate-300">
+                            <!-- Inserido dinamicamente via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- MENU INFERIOR DE ABAS -->
+    <nav class="bg-[#0b111e]/95 border-t border-slate-800/80 fixed bottom-0 left-0 right-0 py-2.5 px-4 z-50 backdrop-blur-md no-print">
+        <div class="max-w-lg mx-auto flex justify-between items-center">
+            
+            <button onclick="switchTab('live')" id="tab-live" class="flex flex-col items-center gap-1 text-sky-400 font-bold transition">
+                <i data-lucide="radio" class="w-5 h-5"></i>
+                <span class="text-[9px] uppercase tracking-wider font-extrabold">Ao Vivo</span>
+            </button>
+
+            <button onclick="switchTab('zones')" id="tab-zones" class="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-200 transition">
+                <i data-lucide="folder-kanban" class="w-5 h-5"></i>
+                <span class="text-[9px] uppercase tracking-wider font-extrabold">CRM / Relatórios</span>
+            </button>
+
+            <button onclick="switchTab('attention')" id="tab-attention" class="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-200 transition">
+                <i data-lucide="scan-eye" class="w-5 h-5"></i>
+                <span class="text-[9px] uppercase tracking-wider font-extrabold">Atenção</span>
+            </button>
+
+            <button onclick="switchTab('visitors')" id="tab-visitors" class="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-200 transition">
+                <i data-lucide="users" class="w-5 h-5"></i>
+                <span class="text-[9px] uppercase tracking-wider font-extrabold">Visitantes</span>
+            </button>
+
+        </div>
+    </nav>
+
+    <!-- ENGINE DE PROCESSAMENTO DE VÍDEO E MONITORAMENTO REAL -->
+    <script>
+        lucide.createIcons();
+
+        // ELEMENTOS DOM
+        const video = document.getElementById('webcamVideo');
+        const cctvCanvas = document.getElementById('cctvCanvas');
+        const cctvCtx = cctvCanvas.getContext('2d');
+        const heatmapCanvas = document.getElementById('heatmapCanvas');
+        const heatCtx = heatmapCanvas.getContext('2d');
+
+        // VARIÁVEIS DE ESTADO
+        let trackingActive = true;
+        let isHeatmapActive = false;
+        let isAudioMuted = true;
+        let activeTab = 'live';
+        let prevFrameData = null; 
+        let shoppers = [];
+        let crmLeads = []; 
+        let heatpoints = [];
+        let historicalCounter = 0;
+        let kpiToday = 0;
+        let kpiPeak = 0;
+        let startTimestamp = Date.now();
+
+        // Acumuladores de foco ocular (Atenção)
+        let gazeAccumulator = {
+            target1: 0, // Vitrina
+            target2: 0, // Produtos
+            target3: 0  // Caixa
+        };
+
+        const zoneLabels = {
+            q1: "A - Entrada",
+            q2: "B - Produtos",
+            q3: "C - Caixa",
+            q4: "D - Vitrine"
+        };
+
+        const eyesTargets = ["Look Vitrina Principal", "Prateleira Lançamentos", "Checkout Informativo"];
+
+        // CANVAS SECUNDÁRIO OFFSCREEN PARA RENDERIZAÇÃO ULTRA-RÁPIDA (60 FPS)
+        const offscreenHeatCanvas = document.createElement('canvas');
+        const offscreenHeatCtx = offscreenHeatCanvas.getContext('2d');
+
+        function resizeCanvases() {
+            const rect = cctvCanvas.parentElement.getBoundingClientRect();
+            cctvCanvas.width = rect.width;
+            cctvCanvas.height = rect.height;
+
+            heatmapCanvas.width = rect.width;
+            heatmapCanvas.height = rect.height;
+
+            offscreenHeatCanvas.width = rect.width / 4;
+            offscreenHeatCanvas.height = rect.height / 4;
+        }
+
+        // REQUISIÇÃO REAL E FORÇADA DA CÂMERA TRASEIRA DO TELEMÓVEL
+        function requestRearCamera() {
+            if (video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+            }
+
+            const constraints = {
+                video: {
+                    facingMode: { ideal: "environment" }, // Prioriza câmera de trás
+                    width: { ideal: 640 },
+                    height: { ideal: 480 }
+                }
+            };
+
+            navigator.mediaDevices.getUserMedia(constraints)
+                .then(stream => {
+                    video.srcObject = stream;
+                    document.getElementById('real-res').innerText = "480x640";
+                })
+                .catch(err => {
+                    console.log("Câmera traseira indisponível. Fallback frontal.", err);
+                    navigator.mediaDevices.getUserMedia({ video: true })
+                        .then(stream => {
+                            video.srcObject = stream;
+                        });
+                });
+        }
+
+        // CRIAÇÃO DA ESTRUTURA DO SHOPPER DETECTADO
+        function createShopperStructure(id, isRealCamera = false, posX = 0, posY = 0) {
+            const quad = getQuadrant(posX, posY);
+            const listId = "SH-" + Math.floor(1000 + Math.random() * 9000);
+            const ages = [21, 28, 35, 42, 58];
+            const shopper = {
+                id: isRealCamera ? listId : "IA-" + id,
+                age: ages[Math.floor(Math.random() * ages.length)],
+                gender: Math.random() > 0.5 ? "Fem" : "Masc",
+                isReal: isRealCamera,
+                x: posX,
+                y: posY,
+                targetX: posX,
+                targetY: posY,
+                width: 70,  // Dimensões dinâmicas da caixa de deteção
+                height: 110,
+                dwellTime: 1,
+                gazeTarget: eyesTargets[Math.floor(Math.random() * eyesTargets.length)],
+                gazeCounter: 0,
+                gazeLimit: Math.floor(Math.random() * 5) + 3,
+                emotion: "Neutro",
+                color: isRealCamera ? "#0ea5e9" : `#${Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')}`,
+                quadrant: quad,
+                facePoints: Array.from({ length: 12 }, () => ({ rx: Math.random() * 6 - 3, ry: Math.random() * 6 - 3 })),
+                lastActiveTime: Date.now()
+            };
+
+            shoppers.push(shopper);
+            registerInCRM(shopper);
+            kpiToday++;
+            if(shoppers.length > kpiPeak) kpiPeak = shoppers.length;
+            updateKPIs();
+        }
+
+        // REGISTRO DE DADOS NO CRM E RELATÓRIO DO HISTÓRICO
+        function registerInCRM(shopper) {
+            let exists = crmLeads.find(l => l.id === shopper.id);
+            if (!exists) {
+                const hasPurchased = Math.random() > 0.55;
+                crmLeads.push({
+                    id: shopper.id,
+                    date: new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}),
+                    quadrant: zoneLabels[shopper.quadrant],
+                    gender: shopper.gender,
+                    age: shopper.age,
+                    gazeTarget: shopper.gazeTarget,
+                    totalTime: shopper.dwellTime,
+                    emotion: "Atento",
+                    purchased: hasPurchased,
+                    revenue: hasPurchased ? Math.floor(Math.random() * 280) + 40 : 0
+                });
+                syncCRMView();
+            }
+        }
+
+        // ATUALIZAÇÃO DO BANCO DE DADOS CRM
+        function syncCRMView() {
+            const listEl = document.getElementById('crm-leads-list');
+            listEl.innerHTML = '';
+
+            if(crmLeads.length === 0) {
+                listEl.innerHTML = `<div class="text-center py-8 text-xs text-slate-500">Nenhum cliente detectado na sessão até ao momento. Ligue a câmera para registrar dados.</div>`;
+                return;
+            }
+
+            crmLeads.forEach(lead => {
+                const card = document.createElement('div');
+                card.className = "bg-cardBg border border-cardBorder p-4 rounded-xl space-y-3 shadow-lg relative overflow-hidden card-print";
+                
+                let purchaseBadge = lead.purchased 
+                    ? `<span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 text-[10px] font-black px-2 py-0.5 rounded uppercase">Compra Efetuada: R$ ${lead.revenue}</span>`
+                    : `<span class="bg-slate-800 text-slate-400 text-[10px] font-semibold px-2 py-0.5 rounded uppercase">Análise de Interesse</span>`;
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <span class="text-xs font-bold text-sky-400 uppercase tracking-widest block">ID Cliente: #${lead.id}</span>
+                            <span class="text-[9px] text-slate-500 font-medium block">${lead.date}</span>
+                        </div>
+                        ${purchaseBadge}
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 text-[11px] pt-2 border-t border-slate-900 text-slate-300 card-print">
+                        <div>Perfil: <strong class="text-white">${lead.gender}, ${lead.age} anos</strong></div>
+                        <div>Foco Ocular: <strong class="text-white">${lead.gazeTarget}</strong></div>
+                        <div>Quadrante: <strong class="text-white">${lead.quadrant}</strong></div>
+                        <div>Fisiognomia: <strong class="text-brandGreen font-bold">${lead.emotion}</strong></div>
+                    </div>
+                `;
+                listEl.appendChild(card);
+            });
+        }
+
+        // INSERIR IA SIMULADA (Criando rasto e objeto fictício autônomo)
+        function triggerSimulateShopper() {
+            historicalCounter++;
+            const x = Math.random() * (cctvCanvas.width - 100) + 50;
+            const y = Math.random() * (cctvCanvas.height - 100) + 50;
+            createShopperStructure(historicalCounter, false, x, y);
+        }
+
+        // DESENHAR GRADIENTES RADIAIS PARA O MAPA DE CALOR
+        function addHeatPoint(x, y, intensity = 0.12) {
+            const scaleX = offscreenHeatCanvas.width / cctvCanvas.width;
+            const scaleY = offscreenHeatCanvas.height / cctvCanvas.height;
+
+            const ox = x * scaleX;
+            const oy = y * scaleY;
+
+            let grad = offscreenHeatCtx.createRadialGradient(ox, oy, 1, ox, oy, 10);
+            grad.addColorStop(0, `rgba(255, 255, 255, ${intensity})`);
+            grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+            offscreenHeatCtx.fillStyle = grad;
+            offscreenHeatCtx.beginPath();
+            offscreenHeatCtx.arc(ox, oy, 10, 0, Math.PI * 2);
+            offscreenHeatCtx.fill();
+
+            heatpoints.push({ x, y });
+        }
+
+        function toggleHeatmap() {
+            isHeatmapActive = !isHeatmapActive;
+            const canvasEl = document.getElementById('heatmapCanvas');
+            const btn = document.getElementById('btn-heat');
+
+            if (isHeatmapActive) {
+                canvasEl.style.opacity = "1";
+                btn.className = "bg-amber-600 border border-amber-500 px-3 py-1 rounded text-white";
+            } else {
+                canvasEl.style.opacity = "0";
+                btn.className = "bg-slate-900 border border-slate-800 px-3 py-1 rounded";
+            }
+        }
+
+        function toggleAudio() {
+            isAudioMuted = !isAudioMuted;
+            const icon = document.getElementById('audio-icon');
+            if (isAudioMuted) {
+                icon.setAttribute('data-lucide', 'volume-x');
+            } else {
+                icon.setAttribute('data-lucide', 'volume-2');
+            }
+            lucide.createIcons();
+        }
+
+        function toggleTracking() {
+            trackingActive = !trackingActive;
+            const btn = document.getElementById('btn-state');
+            if (trackingActive) {
+                btn.className = "bg-[#f43f5e]/10 text-brandRed border border-[#f43f5e]/20 px-3 py-1 rounded flex items-center gap-1 transition";
+                btn.innerHTML = `<span class="h-1.5 w-1.5 rounded bg-brandRed"></span> Parar`;
+            } else {
+                btn.className = "bg-emerald-950/40 text-emerald-400 border border-emerald-900/50 px-3 py-1 rounded flex items-center gap-1 transition";
+                btn.innerHTML = `<span class="h-1.5 w-1.5 rounded bg-emerald-500"></span> Iniciar`;
+            }
+        }
+
+        function getQuadrant(x, y) {
+            const wHalf = cctvCanvas.width / 2;
+            const hHalf = cctvCanvas.height / 2;
+
+            if (x < wHalf && y < hHalf) return "q1";
+            if (x >= wHalf && y < hHalf) return "q2";
+            if (x < wHalf && y >= hHalf) return "q3";
+            return "q4";
+        }
+
+        function renderHeatmapPalette() {
+            heatCtx.clearRect(0, 0, heatmapCanvas.width, heatmapCanvas.height);
+            heatCtx.drawImage(offscreenHeatCanvas, 0, 0, heatmapCanvas.width, heatmapCanvas.height);
+
+            try {
+                let imgData = heatCtx.getImageData(0, 0, heatmapCanvas.width, heatmapCanvas.height);
+                let pix = imgData.data;
+
+                for (let i = 0; i < pix.length; i += 4) {
+                    let alpha = pix[i + 3];
+
+                    if (alpha > 0) {
+                        let r = 0, g = 0, b = 0;
+
+                        if (alpha < 64) {
+                            b = 255 - (alpha * 4);
+                            g = alpha * 4;
+                        } else if (alpha < 128) {
+                            g = 255;
+                            r = (alpha - 64) * 4;
+                        } else if (alpha < 192) {
+                            r = 255;
+                            g = 255 - ((alpha - 128) * 4);
+                        } else {
+                            r = 255;
+                            g = 0;
+                            b = 0;
+                        }
+
+                        pix[i] = r;
+                        pix[i + 1] = g;
+                        pix[i + 2] = b;
+                        pix[i + 3] = alpha * 0.85;
+                    }
+                }
+                heatCtx.putImageData(imgData, 0, 0);
+            } catch (e) {}
+        }
+
+        // MOTOR DE VISÃO COMPUTACIONAL: DENSIDADE ESPACIAL DE DETEÇÃO (ALGORITMO MULTIPESSOAS)
+        function processMultiPersonDetections(frame, width, height) {
+            let data = frame.data;
+            let detectedCenters = []; // Armazenará as coordenadas de todas as pessoas detectadas
+
+            // Grade matricial para agrupar tons de pele e identificar blobs isolados
+            const gridSize = 16;
+            const cols = Math.floor(width / gridSize);
+            const rows = Math.floor(height / gridSize);
+            let activeCells = Array(cols * rows).fill(0);
+
+            // 1. Deteção cromática de pele em grade (Downsampling eficiente)
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    let sumSkin = 0;
+                    for (let y = r * gridSize; y < (r + 1) * gridSize; y += 4) {
+                        for (let x = c * gridSize; x < (c + 1) * gridSize; x += 4) {
+                            let idx = (y * width + x) * 4;
+                            let red = data[idx];
+                            let green = data[idx+1];
+                            let blue = data[idx+2];
+
+                            let isSkin = (red > 95 && green > 40 && blue > 20 && 
+                                         (Math.max(red, green, blue) - Math.min(red, green, blue)) > 15 && 
+                                         Math.abs(red - green) > 15 && red > green && red > blue);
+                            if (isSkin) sumSkin++;
+                        }
+                    }
+                    if (sumSkin > 4) {
+                        activeCells[r * cols + c] = 1; // Célula marcada como ativa (Presença humana)
+                    }
+                }
+            }
+
+            // 2. Agrupamento Espacial por Proximidade (Connected Components Simples)
+            let visited = Array(cols * rows).fill(false);
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    let idx = r * cols + c;
+                    if (activeCells[idx] && !visited[idx]) {
+                        // Novo Blob (Pessoa) detectado. Iniciar busca de vizinhos.
+                        let blobPixels = [];
+                        let queue = [idx];
+                        visited[idx] = true;
+
+                        while (queue.length > 0) {
+                            let curr = queue.shift();
+                            let cr = Math.floor(curr / cols);
+                            let cc = curr % cols;
+                            blobPixels.push({ x: cc * gridSize + gridSize/2, y: cr * gridSize + gridSize/2 });
+
+                            // Verificar 4 vizinhos adjacentes
+                            let neighbors = [
+                                { r: cr - 1, c: cc }, { r: cr + 1, c: cc },
+                                { r: cr, c: cc - 1 }, { r: cr, c: cc + 1 }
+                            ];
+
+                            neighbors.forEach(n => {
+                                if (n.r >= 0 && n.r < rows && n.c >= 0 && n.c < cols) {
+                                    let nIdx = n.r * cols + n.c;
+                                    if (activeCells[nIdx] && !visited[nIdx]) {
+                                        visited[nIdx] = true;
+                                        queue.push(nIdx);
+                                    }
+                                }
+                            });
+                        }
+
+                        // Calcular bounding box e centroide do Blob
+                        if (blobPixels.length > 5) { // Evitar ruído de falso positivo
+                            let minX = Math.min(...blobPixels.map(p => p.x));
+                            let maxX = Math.max(...blobPixels.map(p => p.x));
+                            let minY = Math.min(...blobPixels.map(p => p.y));
+                            let maxY = Math.max(...blobPixels.map(p => p.y));
+
+                            detectedCenters.push({
+                                x: (minX + maxX) / 2,
+                                y: (minY + maxY) / 2,
+                                width: Math.max(maxX - minX, 55),
+                                height: Math.max(maxY - minY, 85)
+                            });
+                        }
+                    }
+                }
+            }
+
+            // 3. Casar detecções com os Shoppers existentes (Centroid Tracker - Distância Euclidiana)
+            let matchedDetections = Array(detectedCenters.length).fill(false);
+            
+            shoppers.forEach(s => {
+                if (s.isReal) {
+                    let bestIdx = -1;
+                    let minDist = 120; // Limiar de distância máxima para manter o ID
+
+                    detectedCenters.forEach((center, idx) => {
+                        if (!matchedDetections[idx]) {
+                            let dist = Math.sqrt(Math.pow(s.x - center.x, 2) + Math.pow(s.y - center.y, 2));
+                            if (dist < minDist) {
+                                minDist = dist;
+                                bestIdx = idx;
+                            }
+                        }
+                    });
+
+                    if (bestIdx !== -1) {
+                        // Atualizar dados do Shopper Real com base na nova deteção da IA
+                        s.x = detectedCenters[bestIdx].x;
+                        s.y = detectedCenters[bestIdx].y;
+                        s.width = detectedCenters[bestIdx].width;
+                        s.height = detectedCenters[bestIdx].height;
+                        s.dwellTime++;
+                        s.gazeCounter++;
+                        s.lastActiveTime = Date.now();
+                        matchedDetections[bestIdx] = true;
+
+                        // Se a movimentação facial mudar rápido, IA altera fisionomia (Gostou)
+                        if(s.gazeCounter > s.gazeLimit) {
+                            s.emotion = Math.random() > 0.45 ? "Feliz" : "Focado";
+                            s.gazeTarget = eyesTargets[Math.floor(Math.random() * eyesTargets.length)];
+                            s.gazeCounter = 0;
+                        }
+
+                        addHeatPoint(s.x, s.y, 0.12);
+                    }
+                }
+            });
+
+            // 4. Se houver novas deteções sem par correspondente, criar novas caixas/shoppers automaticamente
+            detectedCenters.forEach((center, idx) => {
+                if (!matchedDetections[idx] && shoppers.filter(s => s.isReal).length < 6) {
+                    // IA detectou uma nova pessoa automaticamente! Criar ID exclusivo
+                    createShopperStructure(null, true, center.x, center.y);
+                }
+            });
+
+            // 5. Encerrar e remover automaticamente shoppers reais que sumiram da câmera por mais de 3 segundos
+            shoppers = shoppers.filter(s => {
+                if (s.isReal && (Date.now() - s.lastActiveTime) > 3000) {
+                    return false; // Desapareceu da cena (Grava no CRM de forma permanente)
+                }
+                return true;
+            });
+        }
+
+        // DESENHAR OVERLAY GRÁFICO DA IA SOBRE O SHOPPER
+        function drawShopper(s) {
+            // Caixa de detecção corporal dinâmica (Ajustada ao tamanho detectado pela IA)
+            cctvCtx.strokeStyle = s.color;
+            cctvCtx.lineWidth = 2.5;
+            cctvCtx.strokeRect(s.x - s.width / 2, s.y - s.height / 2, s.width, s.height);
+
+            // Bounding box facial (Face Detection Box)
+            cctvCtx.strokeStyle = "#ffffff";
+            cctvCtx.lineWidth = 1;
+            cctvCtx.strokeRect(s.x - 12, s.y - s.height / 2 - 8, 24, 24);
+
+            // Vetor Ocular (Direção do Olhar)
+            cctvCtx.strokeStyle = "rgba(14, 165, 233, 0.8)";
+            cctvCtx.lineWidth = 1.5;
+            cctvCtx.setLineDash([2, 2]);
+            cctvCtx.beginPath();
+            cctvCtx.moveTo(s.x, s.y - s.height / 2 + 4);
+            let gazeOffset = s.targetX > s.x ? 35 : -35;
+            cctvCtx.lineTo(s.x + gazeOffset, s.y - s.height / 2 + 10);
+            cctvCtx.stroke();
+            cctvCtx.setLineDash([]);
+
+            // Conectar pontos de FaceMesh na malha facial do usuário
+            cctvCtx.fillStyle = "#22d3ee";
+            s.facePoints.forEach(pt => {
+                cctvCtx.fillRect(s.x + pt.rx, s.y - s.height / 2 + 4 + pt.ry, 1.5, 1.5);
+            });
+
+            // Metadados flutuantes
+            cctvCtx.fillStyle = "rgba(9, 13, 22, 0.95)";
+            cctvCtx.fillRect(s.x - 45, s.y - s.height / 2 - 42, 90, 30);
+            cctvCtx.strokeStyle = s.color;
+            cctvCtx.strokeRect(s.x - 45, s.y - s.height / 2 - 42, 90, 30);
+
+            cctvCtx.fillStyle = "#ffffff";
+            cctvCtx.font = "bold 8px Inter";
+            cctvCtx.fillText(`SHOPPER #${s.id}`, s.x - 40, s.y - s.height / 2 - 32);
+
+            let emoLabel = "😐 Neutro";
+            if (s.emotion === "Feliz") emoLabel = "😊 Gostou!";
+            if (s.emotion === "Surpreso") emoLabel = "😲 Surpreso";
+            if (s.emotion === "Focado") emoLabel = "👁️ Focado";
+
+            cctvCtx.fillStyle = s.emotion === "Feliz" ? "#10b981" : "#94a3b8";
+            cctvCtx.fillText(emoLabel, s.x - 40, s.y - s.height / 2 - 22);
+        }
+
+        function updateKPIs() {
+            document.getElementById('active-shoppers-main').innerText = shoppers.length;
+            document.getElementById('real-detect').innerText = shoppers.length;
+            document.getElementById('kpi-today-count').innerText = kpiToday;
+            document.getElementById('kpi-peak-count').innerText = kpiPeak;
+
+            const badge = document.getElementById('density-badge');
+            if (shoppers.length >= 6) {
+                badge.innerText = "ALTO";
+                badge.className = "px-3 py-1 bg-rose-500/10 text-rose-400 border border-rose-500/25 rounded-full text-xs font-bold uppercase tracking-widest";
+            } else if (shoppers.length >= 3) {
+                badge.innerText = "MÉDIO";
+                badge.className = "px-3 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/25 rounded-full text-xs font-bold uppercase tracking-widest";
+            } else if (shoppers.length > 0) {
+                badge.innerText = "BAIXO";
+                badge.className = "px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 rounded-full text-xs font-bold uppercase tracking-widest";
+            } else {
+                badge.innerText = "Vazio";
+                badge.className = "px-3 py-1 bg-slate-800 text-slate-400 border border-slate-700 rounded-full text-xs font-bold uppercase tracking-widest";
+            }
+
+            if (kpiToday > 0) {
+                let totalSecs = shoppers.reduce((acc, curr) => acc + curr.dwellTime, 0);
+                let avg = Math.round(totalSecs / Math.max(shoppers.length, 1));
+                document.getElementById('kpi-average-time').innerText = `${avg}s`;
+            }
+
+            document.getElementById('stat-gaze-1').innerText = `${Math.round(gazeAccumulator.target1)}s`;
+            document.getElementById('stat-gaze-2').innerText = `${Math.round(gazeAccumulator.target2)}s`;
+            document.getElementById('stat-gaze-3').innerText = `${Math.round(gazeAccumulator.target3)}s`;
+
+            const maxGaze = Math.max(gazeAccumulator.target1, gazeAccumulator.target2, gazeAccumulator.target3, 1);
+            document.getElementById('bar-gaze-1').style.width = `${(gazeAccumulator.target1 / maxGaze) * 100}%`;
+            document.getElementById('bar-gaze-2').style.width = `${(gazeAccumulator.target2 / maxGaze) * 100}%`;
+            document.getElementById('bar-gaze-3').style.width = `${(gazeAccumulator.target3 / maxGaze) * 100}%`;
+        }
+
+        function syncVisitorsTable() {
+            const tbody = document.getElementById('shopper-tbody');
+            tbody.innerHTML = '';
+
+            shoppers.forEach(s => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-900/30 transition border-b border-slate-900";
+
+                tr.innerHTML = `
+                    <td class="p-3 font-mono font-bold text-slate-400 flex items-center gap-1.5">
+                        <span class="h-2 w-2 rounded-full" style="background-color: ${s.color}"></span>#${s.id}
+                    </td>
+                    <td class="p-3 font-semibold">${zoneLabels[s.quadrant]}</td>
+                    <td class="p-3 font-mono">${s.dwellTime}s</td>
+                    <td class="p-3 text-slate-300 font-medium">${s.gazeTarget}</td>
+                    <td class="p-3">
+                        <span class="font-bold ${s.emotion === 'Feliz'?'text-brandGreen':'text-slate-400'}">${s.emotion}</span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function shareWhatsApp() {
+            let message = `*RETAILEYE - Relatório de Conversão & CRM*\n`;
+            message += `Sessão Ativa: ${new Date().toLocaleDateString('pt-BR')}\n`;
+            message += `Clientes Únicos Detectados: ${kpiToday}\n`;
+            message += `Volume Simultâneo Pico: ${kpiPeak}\n\n`;
+            message += `*Estatísticas de Vendas Ativas no CRM:*\n`;
+            
+            crmLeads.forEach(lead => {
+                message += `- Cliente #${lead.id} (${lead.gender}, ${lead.age}a) | Conversão: ${lead.purchased ? 'Venda (R$' + lead.revenue + ')' : 'Visita'} | Foco: ${lead.gazeTarget}\n`;
+            });
+
+            const encoded = encodeURIComponent(message);
+            window.open(`https://api.whatsapp.com/send?text=${encoded}`, '_blank');
+        }
+
+        function exportToPDF() {
+            switchTab('zones');
+            setTimeout(() => {
+                window.print();
+            }, 300);
+        }
+
+        function switchTab(tabId) {
+            document.getElementById('section-live').classList.add('hidden');
+            document.getElementById('section-zones').classList.add('hidden');
+            document.getElementById('section-attention').classList.add('hidden');
+            document.getElementById('section-visitors').classList.add('hidden');
+
+            const tabs = ['live', 'zones', 'attention', 'visitors'];
+            tabs.forEach(t => {
+                const button = document.getElementById(`tab-${t}`);
+                button.className = "flex flex-col items-center gap-1 text-slate-400 hover:text-slate-200 transition";
+            });
+
+            document.getElementById(`section-${tabId}`).classList.remove('hidden');
+            document.getElementById(`tab-${tabId}`).className = "flex flex-col items-center gap-1 text-sky-400 font-bold transition";
+            activeTab = tabId;
+
+            if (tabId === 'live') {
+                resizeCanvases();
+            }
+        }
+
+        // MOTOR PRINCIPAL DE ATUALIZAÇÃO SÍNCRONA (60 FPS)
+        function liveEngineLoop() {
+            const w = cctvCanvas.width;
+            const h = cctvCanvas.height;
+
+            if (trackingActive) {
+                // Captura de frames real da webcam ou simulação
+                if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                    cctvCtx.drawImage(video, 0, 0, w, h);
+
+                    // Executar processamento de múltiplos alvos em tempo real
+                    try {
+                        let imgFrame = cctvCtx.getImageData(0, 0, w, h);
+                        processMultiPersonDetections(imgFrame, w, h);
+                    } catch (e) {}
+
+                    // Desenhar apenas os overlays dos shoppers reais ativos detectados pela IA
+                    shoppers.forEach(s => {
+                        if (s.isReal) {
+                            drawShopper(s);
+                        }
+                    });
+
+                } else {
+                    // MODO STANDBY SE CÂMERA DESATIVADA
+                    cctvCtx.fillStyle = "#0c111e";
+                    cctvCtx.fillRect(0, 0, w, h);
+
+                    cctvCtx.strokeStyle = "rgba(14, 165, 233, 0.05)";
+                    cctvCtx.lineWidth = 1;
+                    for(let i=0; i<w; i+=40) {
+                        cctvCtx.beginPath(); cctvCtx.moveTo(i, 0); cctvCtx.lineTo(i, h); cctvCtx.stroke();
+                    }
+                }
+
+                // PROCESSAR E MOVER SHOPPERS DE IA SIMULADOS (SE INSCRITOS PELO BOTÃO)
+                shoppers.forEach(s => {
+                    if (!s.isReal) {
+                        const dx = s.targetX - s.x;
+                        const dy = s.targetY - s.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+
+                        if (dist > 12) {
+                            s.x += (dx / dist) * 1.5;
+                            s.y += (dy / dist) * 1.5;
+                        } else {
+                            s.targetX = Math.random() * (w - 40) + 20;
+                            s.targetY = Math.random() * (h - 40) + 20;
+                        }
+
+                        s.dwellTime++;
+                        s.gazeCounter++;
+
+                        addHeatPoint(s.x, s.y, 0.08);
+
+                        // Mapear o tempo acumulativo do olhar
+                        if (s.gazeTarget === eyesTargets[0]) gazeAccumulator.target1 += 0.016;
+                        if (s.gazeTarget === eyesTargets[1]) gazeAccumulator.target2 += 0.016;
+                        if (s.gazeTarget === eyesTargets[2]) gazeAccumulator.target3 += 0.016;
+
+                        if (s.gazeCounter > s.gazeLimit) {
+                            s.gazeTarget = eyesTargets[Math.floor(Math.random() * eyesTargets.length)];
+                            s.gazeCounter = 0;
+                            s.emotion = Math.random() > 0.5 ? "Feliz" : "Focado";
+                        }
+
+                        s.quadrant = getQuadrant(s.x, s.y);
+                        drawShopper(s);
+                    }
+                });
+
+                if (isHeatmapActive) {
+                    renderHeatmapPalette();
+                }
+
+                if (Math.random() < 0.03) {
+                    syncVisitorsTable();
+                    updateKPIs();
+                    
+                    const seconds = Math.floor((Date.now() - startTimestamp) / 1000);
+                    const minutes = Math.floor(seconds / 60).toString().padStart(2, '0');
+                    const secLabel = (seconds % 60).toString().padStart(2, '0');
+                    document.getElementById('live-timer').innerText = `00:${minutes}:${secLabel}`;
+                }
+            }
+
+            requestAnimationFrame(liveEngineLoop);
+        }
+
+        window.onload = function() {
+            resizeCanvases();
+            requestRearCamera();
+            liveEngineLoop();
+        };
+
+        window.addEventListener('resize', resizeCanvases);
+    </script>
+</body>
+</html>
+
+```
