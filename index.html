@@ -1,10 +1,9 @@
-```html
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>RETAILEYE - Visão Computacional de Alta Performance</title>
+    <title>RETAILEYE - Visão Computacional & CRM</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
@@ -55,7 +54,7 @@
 </head>
 <body class="text-slate-100 min-h-screen flex flex-col justify-between overflow-x-hidden select-none">
 
-    <!-- HEADER SUPERIOR (Fiel ao design premium RETAILEYE) -->
+    <!-- HEADER SUPERIOR (Fiel ao print do aplicativo) -->
     <header class="bg-[#0b111e]/95 border-b border-slate-800/60 sticky top-0 z-50 px-4 py-3 no-print">
         <div class="max-w-lg mx-auto w-full flex justify-between items-center">
             <div class="flex items-center gap-2.5">
@@ -80,7 +79,7 @@
         </div>
     </header>
 
-    <!-- METADATA PANEL (Diagnóstico técnico real) -->
+    <!-- METADATA PANEL -->
     <section class="bg-[#0c1221] border-b border-slate-800/40 px-4 py-2 no-print">
         <div class="max-w-lg mx-auto flex justify-between items-center text-[10px] font-semibold text-slate-400">
             <div class="flex gap-4">
@@ -103,24 +102,21 @@
         </div>
     </section>
 
-    <!-- VIDEO CAPTURA DE HARDWARE (NATIVO) -->
+    <!-- VÍDEO OCULTO PARA CAPTURA -->
     <video id="webcamVideo" autoplay playsinline muted class="hidden"></video>
 
-    <!-- CONTAINER OPERACIONAL -->
+    <!-- CONTEÚDO PRINCIPAL (Móvel & Responsivo) -->
     <main class="flex-grow w-full max-w-lg mx-auto px-4 py-4 space-y-4 overflow-y-auto no-scrollbar pb-24 print-container">
 
         <!-- ================= MÓDULO 1: AO VIVO ================= -->
         <div id="section-live" class="space-y-4">
             
-            <!-- CONTÊINER DA CÂMERA -->
+            <!-- FEED DA CÂMERA -->
             <div class="relative bg-black rounded-2xl overflow-hidden border border-slate-800 shadow-2xl aspect-[3/4] no-print">
-                <!-- Canvas de Processamento de IA -->
                 <canvas id="cctvCanvas" class="absolute inset-0 w-full h-full object-cover"></canvas>
-                
-                <!-- Canvas de Acumulação Térmica -->
                 <canvas id="heatmapCanvas" class="absolute inset-0 w-full h-full object-cover thermal-blend opacity-0 transition-opacity duration-300"></canvas>
 
-                <!-- Retícula de Câmera -->
+                <!-- Retícula dos Cantos -->
                 <div class="absolute inset-4 pointer-events-none border border-transparent">
                     <div class="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-sky-400"></div>
                     <div class="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-sky-400"></div>
@@ -128,7 +124,7 @@
                     <div class="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-sky-400"></div>
                 </div>
 
-                <!-- LINHAS DOS 4 QUADRANTES -->
+                <!-- QUADRANTES DE MONITORAMENTO -->
                 <div class="absolute inset-0 grid grid-cols-2 grid-rows-2 pointer-events-none">
                     <div class="border-r border-b border-slate-500/20 flex items-start p-2">
                         <span class="text-[9px] font-black text-sky-400 bg-[#090d16]/85 px-2 py-0.5 rounded border border-sky-500/10">A - Entrada</span>
@@ -144,10 +140,10 @@
                     </div>
                 </div>
 
-                <!-- BOTÕES FLUTUANTES DA CÂMERA -->
+                <!-- CONTROLES FLUTUANTES -->
                 <div class="absolute bottom-3 left-3 flex gap-2">
                     <button onclick="requestRearCamera()" class="bg-black/85 hover:bg-black text-white text-[10px] font-bold py-2 px-3 rounded-xl border border-slate-800 backdrop-blur flex items-center gap-1.5 transition">
-                        <i data-lucide="camera" class="w-3.5 h-3.5 text-sky-400"></i> Ativar Traseira
+                        <i data-lucide="camera" class="w-3.5 h-3.5 text-sky-400"></i> Câm. Traseira
                     </button>
                     <button onclick="triggerSimulateShopper()" class="bg-black/85 hover:bg-black text-white text-[10px] font-bold py-2 px-3 rounded-xl border border-slate-800 backdrop-blur flex items-center gap-1.5 transition">
                         <i data-lucide="user-plus" class="w-3.5 h-3.5 text-brandGreen"></i> Simular IA
@@ -296,18 +292,18 @@
         </div>
     </nav>
 
-    <!-- ENGINE DE PROCESSAMENTO DE VÍDEO E MONITORAMENTO REAL -->
+    <!-- MOTOR DE INTELIGÊNCIA COMPUTACIONAL MULTIPESSOAS -->
     <script>
         lucide.createIcons();
 
-        // ELEMENTOS DOM
+        // CANVAS DOM
         const video = document.getElementById('webcamVideo');
         const cctvCanvas = document.getElementById('cctvCanvas');
         const cctvCtx = cctvCanvas.getContext('2d');
         const heatmapCanvas = document.getElementById('heatmapCanvas');
         const heatCtx = heatmapCanvas.getContext('2d');
 
-        // VARIÁVEIS DE ESTADO
+        // ESTADO GLOBAL
         let trackingActive = true;
         let isHeatmapActive = false;
         let isAudioMuted = true;
@@ -321,12 +317,8 @@
         let kpiPeak = 0;
         let startTimestamp = Date.now();
 
-        // Acumuladores de foco ocular (Atenção)
-        let gazeAccumulator = {
-            target1: 0, // Vitrina
-            target2: 0, // Produtos
-            target3: 0  // Caixa
-        };
+        // Acumuladores de atenção ocular
+        let gazeAccumulator = { target1: 0, target2: 0, target3: 0 };
 
         const zoneLabels = {
             q1: "A - Entrada",
@@ -353,7 +345,7 @@
             offscreenHeatCanvas.height = rect.height / 4;
         }
 
-        // REQUISIÇÃO REAL E FORÇADA DA CÂMERA TRASEIRA DO TELEMÓVEL
+        // SOLICITAR ACESSO À CÂMERA TRASEIRA DO TELEMÓVEL
         function requestRearCamera() {
             if (video.srcObject) {
                 video.srcObject.getTracks().forEach(track => track.stop());
@@ -361,7 +353,7 @@
 
             const constraints = {
                 video: {
-                    facingMode: { ideal: "environment" }, // Prioriza câmera de trás
+                    facingMode: { ideal: "environment" },
                     width: { ideal: 640 },
                     height: { ideal: 480 }
                 }
@@ -395,7 +387,7 @@
                 y: posY,
                 targetX: posX,
                 targetY: posY,
-                width: 70,  // Dimensões dinâmicas da caixa de deteção
+                width: 70,  
                 height: 110,
                 dwellTime: 1,
                 gazeTarget: eyesTargets[Math.floor(Math.random() * eyesTargets.length)],
@@ -590,9 +582,8 @@
         // MOTOR DE VISÃO COMPUTACIONAL: DENSIDADE ESPACIAL DE DETEÇÃO (ALGORITMO MULTIPESSOAS)
         function processMultiPersonDetections(frame, width, height) {
             let data = frame.data;
-            let detectedCenters = []; // Armazenará as coordenadas de todas as pessoas detectadas
+            let detectedCenters = []; 
 
-            // Grade matricial para agrupar tons de pele e identificar blobs isolados
             const gridSize = 16;
             const cols = Math.floor(width / gridSize);
             const rows = Math.floor(height / gridSize);
@@ -616,7 +607,7 @@
                         }
                     }
                     if (sumSkin > 4) {
-                        activeCells[r * cols + c] = 1; // Célula marcada como ativa (Presença humana)
+                        activeCells[r * cols + c] = 1; 
                     }
                 }
             }
@@ -627,7 +618,6 @@
                 for (let c = 0; c < cols; c++) {
                     let idx = r * cols + c;
                     if (activeCells[idx] && !visited[idx]) {
-                        // Novo Blob (Pessoa) detectado. Iniciar busca de vizinhos.
                         let blobPixels = [];
                         let queue = [idx];
                         visited[idx] = true;
@@ -638,7 +628,6 @@
                             let cc = curr % cols;
                             blobPixels.push({ x: cc * gridSize + gridSize/2, y: cr * gridSize + gridSize/2 });
 
-                            // Verificar 4 vizinhos adjacentes
                             let neighbors = [
                                 { r: cr - 1, c: cc }, { r: cr + 1, c: cc },
                                 { r: cr, c: cc - 1 }, { r: cr, c: cc + 1 }
@@ -655,8 +644,7 @@
                             });
                         }
 
-                        // Calcular bounding box e centroide do Blob
-                        if (blobPixels.length > 5) { // Evitar ruído de falso positivo
+                        if (blobPixels.length > 5) { 
                             let minX = Math.min(...blobPixels.map(p => p.x));
                             let maxX = Math.max(...blobPixels.map(p => p.x));
                             let minY = Math.min(...blobPixels.map(p => p.y));
@@ -679,7 +667,7 @@
             shoppers.forEach(s => {
                 if (s.isReal) {
                     let bestIdx = -1;
-                    let minDist = 120; // Limiar de distância máxima para manter o ID
+                    let minDist = 120; 
 
                     detectedCenters.forEach((center, idx) => {
                         if (!matchedDetections[idx]) {
@@ -692,7 +680,6 @@
                     });
 
                     if (bestIdx !== -1) {
-                        // Atualizar dados do Shopper Real com base na nova deteção da IA
                         s.x = detectedCenters[bestIdx].x;
                         s.y = detectedCenters[bestIdx].y;
                         s.width = detectedCenters[bestIdx].width;
@@ -702,7 +689,6 @@
                         s.lastActiveTime = Date.now();
                         matchedDetections[bestIdx] = true;
 
-                        // Se a movimentação facial mudar rápido, IA altera fisionomia (Gostou)
                         if(s.gazeCounter > s.gazeLimit) {
                             s.emotion = Math.random() > 0.45 ? "Feliz" : "Focado";
                             s.gazeTarget = eyesTargets[Math.floor(Math.random() * eyesTargets.length)];
@@ -717,7 +703,6 @@
             // 4. Se houver novas deteções sem par correspondente, criar novas caixas/shoppers automaticamente
             detectedCenters.forEach((center, idx) => {
                 if (!matchedDetections[idx] && shoppers.filter(s => s.isReal).length < 6) {
-                    // IA detectou uma nova pessoa automaticamente! Criar ID exclusivo
                     createShopperStructure(null, true, center.x, center.y);
                 }
             });
@@ -725,7 +710,7 @@
             // 5. Encerrar e remover automaticamente shoppers reais que sumiram da câmera por mais de 3 segundos
             shoppers = shoppers.filter(s => {
                 if (s.isReal && (Date.now() - s.lastActiveTime) > 3000) {
-                    return false; // Desapareceu da cena (Grava no CRM de forma permanente)
+                    return false; 
                 }
                 return true;
             });
@@ -733,17 +718,14 @@
 
         // DESENHAR OVERLAY GRÁFICO DA IA SOBRE O SHOPPER
         function drawShopper(s) {
-            // Caixa de detecção corporal dinâmica (Ajustada ao tamanho detectado pela IA)
             cctvCtx.strokeStyle = s.color;
             cctvCtx.lineWidth = 2.5;
             cctvCtx.strokeRect(s.x - s.width / 2, s.y - s.height / 2, s.width, s.height);
 
-            // Bounding box facial (Face Detection Box)
             cctvCtx.strokeStyle = "#ffffff";
             cctvCtx.lineWidth = 1;
             cctvCtx.strokeRect(s.x - 12, s.y - s.height / 2 - 8, 24, 24);
 
-            // Vetor Ocular (Direção do Olhar)
             cctvCtx.strokeStyle = "rgba(14, 165, 233, 0.8)";
             cctvCtx.lineWidth = 1.5;
             cctvCtx.setLineDash([2, 2]);
@@ -754,13 +736,11 @@
             cctvCtx.stroke();
             cctvCtx.setLineDash([]);
 
-            // Conectar pontos de FaceMesh na malha facial do usuário
             cctvCtx.fillStyle = "#22d3ee";
             s.facePoints.forEach(pt => {
                 cctvCtx.fillRect(s.x + pt.rx, s.y - s.height / 2 + 4 + pt.ry, 1.5, 1.5);
             });
 
-            // Metadados flutuantes
             cctvCtx.fillStyle = "rgba(9, 13, 22, 0.95)";
             cctvCtx.fillRect(s.x - 45, s.y - s.height / 2 - 42, 90, 30);
             cctvCtx.strokeStyle = s.color;
@@ -888,17 +868,14 @@
             const h = cctvCanvas.height;
 
             if (trackingActive) {
-                // Captura de frames real da webcam ou simulação
                 if (video.readyState === video.HAVE_ENOUGH_DATA) {
                     cctvCtx.drawImage(video, 0, 0, w, h);
 
-                    // Executar processamento de múltiplos alvos em tempo real
                     try {
                         let imgFrame = cctvCtx.getImageData(0, 0, w, h);
                         processMultiPersonDetections(imgFrame, w, h);
                     } catch (e) {}
 
-                    // Desenhar apenas os overlays dos shoppers reais ativos detectados pela IA
                     shoppers.forEach(s => {
                         if (s.isReal) {
                             drawShopper(s);
@@ -906,7 +883,6 @@
                     });
 
                 } else {
-                    // MODO STANDBY SE CÂMERA DESATIVADA
                     cctvCtx.fillStyle = "#0c111e";
                     cctvCtx.fillRect(0, 0, w, h);
 
@@ -917,7 +893,6 @@
                     }
                 }
 
-                // PROCESSAR E MOVER SHOPPERS DE IA SIMULADOS (SE INSCRITOS PELO BOTÃO)
                 shoppers.forEach(s => {
                     if (!s.isReal) {
                         const dx = s.targetX - s.x;
@@ -937,7 +912,6 @@
 
                         addHeatPoint(s.x, s.y, 0.08);
 
-                        // Mapear o tempo acumulativo do olhar
                         if (s.gazeTarget === eyesTargets[0]) gazeAccumulator.target1 += 0.016;
                         if (s.gazeTarget === eyesTargets[1]) gazeAccumulator.target2 += 0.016;
                         if (s.gazeTarget === eyesTargets[2]) gazeAccumulator.target3 += 0.016;
